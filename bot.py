@@ -39,6 +39,9 @@ CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "").strip()
 # Requires: the bot must be an ADMIN of the channel, and CHANNEL_USERNAME set.
 REQUIRE_JOIN    = os.getenv("REQUIRE_JOIN", "false").strip().lower() == "true"
 BRAND           = os.getenv("BRAND", "Profit Matrix").strip()
+# Promo image shown on top of the welcome message. Can be a local file placed
+# next to bot.py (e.g. "welcome.jpg") OR a public image URL. Empty = text only.
+WELCOME_IMAGE   = os.getenv("WELCOME_IMAGE", "welcome.png").strip()
 
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
@@ -171,6 +174,40 @@ def send(chat_id, text, reply_markup=None):
         logger.warning(f"send failed: {e}")
 
 
+def welcome_image():
+    """Return the promo image to use (a URL or an existing local path), or None."""
+    if not WELCOME_IMAGE:
+        return None
+    if WELCOME_IMAGE.lower().startswith(("http://", "https://")):
+        return WELCOME_IMAGE
+    p = Path(__file__).with_name(WELCOME_IMAGE)
+    return str(p) if p.exists() else None
+
+
+def send_photo(chat_id, image, caption=None, reply_markup=None):
+    """Send a photo by URL or local file. caption supports HTML (<=1024 chars)."""
+    data = {"chat_id": chat_id, "parse_mode": "HTML"}
+    if caption:
+        data["caption"] = caption
+    if reply_markup:
+        data["reply_markup"] = json.dumps(reply_markup)  # form-encoded → JSON string
+    try:
+        if str(image).lower().startswith(("http://", "https://")):
+            data["photo"] = image
+            r = requests.post(f"{API}/sendPhoto", data=data, timeout=30)
+        else:
+            with open(image, "rb") as f:
+                r = requests.post(f"{API}/sendPhoto", data=data,
+                                  files={"photo": f}, timeout=60)
+        ok = r.json().get("ok", False)
+        if not ok:
+            logger.warning(f"sendPhoto not ok: {r.text[:200]}")
+        return ok
+    except Exception as e:
+        logger.warning(f"send_photo failed: {e}")
+        return False
+
+
 def answer_callback(callback_id, text=""):
     try:
         requests.post(f"{API}/answerCallbackQuery",
@@ -232,7 +269,20 @@ def show_language_picker(chat_id):
 
 def show_welcome(chat_id, lang: str):
     text = WELCOME[lang] + DISCLAIMER[lang]
-    send(chat_id, text, reply_markup=welcome_keyboard(lang))
+    kb = welcome_keyboard(lang)
+    img = welcome_image()
+    if img:
+        # Telegram photo captions max out at 1024 chars. If the welcome fits,
+        # send it all as the caption (image + text + buttons in one message).
+        # Otherwise send the image first, then the full text + buttons.
+        if len(text) <= 1024:
+            if send_photo(chat_id, img, caption=text, reply_markup=kb):
+                return
+        else:
+            if send_photo(chat_id, img):
+                send(chat_id, text, reply_markup=kb)
+                return
+    send(chat_id, text, reply_markup=kb)  # fallback: text only
 
 
 def handle_message(msg):
