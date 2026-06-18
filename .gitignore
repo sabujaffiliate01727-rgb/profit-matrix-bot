@@ -1,0 +1,8 @@
+# NEVER commit secrets
+.env
+
+# Runtime / generated
+users.json
+run.log
+__pycache__/
+*.pyc
