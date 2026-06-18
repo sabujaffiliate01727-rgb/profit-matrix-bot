@@ -64,35 +64,45 @@ The welcome text uses the **Profit Matrix** community voice ("we"). Edit the
 
 ---
 
-## Deploy free 24/7 on Koyeb
+## Deploy free 24/7 on Render (no credit card)
 
-The bot only runs while it's running somewhere. Koyeb's free tier keeps it
-online 24/7 without your PC. It builds from the included `Dockerfile`.
+The bot only runs while it's running somewhere. Render's **free** Web Service
+tier hosts it without a credit card. The bot opens a tiny health page so Render
+sees it's up; a free uptime pinger keeps it from sleeping.
 
-### 1. Put the code on GitHub
-This folder is already a git repo with a safe `.gitignore` (your `.env` and
-token are **never** uploaded). Create an empty repo on github.com, then:
-```
-git remote add origin https://github.com/<your-username>/profit-matrix-bot.git
-git push -u origin main
-```
+> Render's free tier sleeps a Web Service after 15 min with no incoming traffic.
+> A free **UptimeRobot** monitor that pings the URL every 5 min keeps it awake.
 
-### 2. Create the Koyeb service
-1. Sign up at https://app.koyeb.com (GitHub login is easiest)
-2. **Create Service → GitHub →** pick your `profit-matrix-bot` repo
-3. Koyeb detects the `Dockerfile` automatically
-4. **Service type: Worker** (this bot has no website/port)
-5. **Instance: Free**
-6. Open **Environment variables** and add (do NOT put them in the repo):
-   - `BOT_TOKEN` → your token  *(mark as Secret)*
+### 1. Code on GitHub
+Already done — repo is pushed (the `.env`/token are never uploaded thanks to
+`.gitignore`).
+
+### 2. Create the Render Web Service
+1. Sign up at https://render.com → **Sign in with GitHub** (no card needed)
+2. **New + → Web Service →** connect & pick your `profit-matrix-bot` repo
+3. Render detects the `Dockerfile`. Settings:
+   - **Instance type: Free**
+   - Branch: `main`
+4. **Environment variables** — add (do NOT put them in the repo):
+   - `BOT_TOKEN` → your token
    - `CHANNEL_URL` → `https://t.me/ProfitMatrixpm`
    - `CHANNEL_USERNAME` → `@ProfitMatrixpm`
    - `REQUIRE_JOIN` → `true`
    - `BRAND` → `Profit Matrix`
-7. **Deploy**. When logs show `Bot online: @...`, it's live 24/7. ✅
+   - (Render sets `PORT` automatically — the bot reads it.)
+5. **Create Web Service**. Logs should show `Health server listening on :...`
+   and `Bot online: @...`. Copy the public URL (e.g.
+   `https://profit-matrix-bot.onrender.com`).
 
-> Note: Koyeb's disk is ephemeral, so `users.json` (saved languages) resets on
+### 3. Keep it awake with UptimeRobot (free, no card)
+1. Sign up at https://uptimerobot.com
+2. **Add New Monitor** → Type: **HTTP(s)** → URL: your Render URL →
+   Interval: **5 minutes** → Create.
+
+That's it — the bot stays online 24/7 for free. ✅
+
+> Note: Render's disk is ephemeral, so `users.json` (saved languages) resets on
 > redeploys. Harmless — users just pick their language again on next `/start`.
 
 ### Updating later
-Edit code → `git commit -am "update" && git push` → Koyeb auto-redeploys.
+Edit code → `git commit -am "update" && git push` → Render auto-redeploys.
