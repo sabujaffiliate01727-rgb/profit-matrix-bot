@@ -59,6 +59,40 @@ All text lives near the top of `bot.py`:
 - `JOINED_OK` / `NOT_JOINED` — verification replies
 - `BTN` — button labels
 
-The welcome text currently says **"AlveeFx"** (from your sample). If your persona
-is different, just replace `AlveeFx` in the `WELCOME` block with **Profit Matrix**
-or your own name.
+The welcome text uses the **Profit Matrix** community voice ("we"). Edit the
+`WELCOME` block to change wording, brand, or tone.
+
+---
+
+## Deploy free 24/7 on Koyeb
+
+The bot only runs while it's running somewhere. Koyeb's free tier keeps it
+online 24/7 without your PC. It builds from the included `Dockerfile`.
+
+### 1. Put the code on GitHub
+This folder is already a git repo with a safe `.gitignore` (your `.env` and
+token are **never** uploaded). Create an empty repo on github.com, then:
+```
+git remote add origin https://github.com/<your-username>/profit-matrix-bot.git
+git push -u origin main
+```
+
+### 2. Create the Koyeb service
+1. Sign up at https://app.koyeb.com (GitHub login is easiest)
+2. **Create Service → GitHub →** pick your `profit-matrix-bot` repo
+3. Koyeb detects the `Dockerfile` automatically
+4. **Service type: Worker** (this bot has no website/port)
+5. **Instance: Free**
+6. Open **Environment variables** and add (do NOT put them in the repo):
+   - `BOT_TOKEN` → your token  *(mark as Secret)*
+   - `CHANNEL_URL` → `https://t.me/ProfitMatrixpm`
+   - `CHANNEL_USERNAME` → `@ProfitMatrixpm`
+   - `REQUIRE_JOIN` → `true`
+   - `BRAND` → `Profit Matrix`
+7. **Deploy**. When logs show `Bot online: @...`, it's live 24/7. ✅
+
+> Note: Koyeb's disk is ephemeral, so `users.json` (saved languages) resets on
+> redeploys. Harmless — users just pick their language again on next `/start`.
+
+### Updating later
+Edit code → `git commit -am "update" && git push` → Koyeb auto-redeploys.
