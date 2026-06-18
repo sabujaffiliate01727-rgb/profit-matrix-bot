@@ -16,7 +16,9 @@ Stop: Ctrl + C
 import json
 import logging
 import sys
+import threading
 import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import requests
@@ -279,6 +281,29 @@ def handle_callback(cb):
         answer_callback(cb_id)
 
 
+# ── Tiny health web server (for cloud hosts like Render + an uptime pinger) ─────
+class _Health(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write("Profit Matrix bot is alive ✅".encode("utf-8"))
+
+    def log_message(self, *args):
+        pass  # keep logs clean
+
+
+def start_health_server():
+    """Open an HTTP port so a host (Render) sees the service is up and an
+    uptime pinger can keep it awake. Only runs when PORT is set (i.e. on a host)."""
+    port = int(os.getenv("PORT", "0"))
+    if not port:
+        return
+    srv = HTTPServer(("0.0.0.0", port), _Health)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    logger.info(f"Health server listening on :{port}")
+
+
 # ── Main loop ───────────────────────────────────────────────────────────────────
 def main():
     if not BOT_TOKEN:
@@ -299,6 +324,7 @@ def main():
         sys.exit(1)
 
     logger.info(f"Channel: {CHANNEL_URL} | verify={REQUIRE_JOIN and bool(CHANNEL_USERNAME)}")
+    start_health_server()  # no-op locally; opens a port on a cloud host
     logger.info("Listening for /start ... (Ctrl+C to stop)")
 
     offset = 0
