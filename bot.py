@@ -289,6 +289,12 @@ class _Health(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write("Profit Matrix bot is alive ✅".encode("utf-8"))
 
+    def do_HEAD(self):
+        # Uptime monitors (e.g. UptimeRobot) ping with HEAD — answer 200.
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.end_headers()
+
     def log_message(self, *args):
         pass  # keep logs clean
 
